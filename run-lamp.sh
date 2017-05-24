@@ -53,17 +53,23 @@ else
 fi
 
 # Set PHP timezone
-/bin/sed -i "s/\;date\.timezone\ \=/date\.timezone\ \=\ ${DATE_TIMEZONE}/" /etc/php/7.0/apache2/php.ini
+#/bin/sed -i "s/\;date\.timezone\ \=/date\.timezone\ \=\ ${DATE_TIMEZONE}/" /etc/php/7.0/apache2/php.ini
 
 # Run Postfix
-/usr/sbin/postfix start
+# /usr/sbin/postfix start
 
 # Run MariaDB
-/usr/bin/mysqld_safe --timezone=${DATE_TIMEZONE}&
+#/usr/bin/mysqld_safe --timezone=${DATE_TIMEZONE}&
 
 # Run Apache:
-if [ $LOG_LEVEL == 'debug' ]; then
-    /usr/sbin/apachectl -DFOREGROUND -k start -e debug
-else
-    &>/dev/null /usr/sbin/apachectl -DFOREGROUND -k start
-fi
+# if [ $LOG_LEVEL == 'debug' ]; then
+#     /usr/sbin/apachectl -DFOREGROUND -k start -e debug
+# else
+#     &>/dev/null /usr/sbin/apachectl -DFOREGROUND -k start
+# fi
+
+su postgres -c '/usr/lib/postgresql/9.5/bin/postgres  --config-file=/etc/postgresql/9.5/main/postgresql.conf' 
+sudo -u postgres psql -c"ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
+
+nginx
+/usr/sbin/sshd 

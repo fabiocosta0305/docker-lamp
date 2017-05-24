@@ -43,11 +43,14 @@ RUN apt-get install -y \
 	php7.0-tidy \
 	php7.0-xmlrpc \
 	php7.0-xsl
-RUN apt-get install apache2 libapache2-mod-php7.0 -y
-RUN apt-get install mariadb-common mariadb-server mariadb-client -y
+# RUN apt-get install apache2 libapache2-mod-php7.0 -y
+RUN apt-get install postgresql postgresql-contrib phppgadmin php-pgsql -y
+# RUN apt-get install mariadb-common mariadb-server mariadb-client -y
 RUN apt-get install postfix -y
 RUN apt-get install git nodejs npm composer nano tree vim curl ftp -y
+RUN apt-get install nginx -y
 RUN npm install -g bower grunt-cli gulp
+RUN apt-get install sudo
 
 ENV LOG_STDOUT **Boolean**
 ENV LOG_STDERR **Boolean**
@@ -58,18 +61,42 @@ ENV TERM dumb
 
 COPY index.php /var/www/html/
 COPY run-lamp.sh /usr/sbin/
+#COPY default /etc/nginx/sites-avaliable/
 
 RUN a2enmod rewrite
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 RUN chmod +x /usr/sbin/run-lamp.sh
 RUN chown -R www-data:www-data /var/www/html
+RUN mkdir -p /var/run/postgresql/9.5-main.pg_stat_tmp/
+RUN chown -R postgres:postgres /var/run/postgresql/9.5-main.pg_stat_tmp/
+RUN mkdir -p /var/run/sshd/
+
+# Creating an user for some needed access
+
+RUN useradd -ms /bin/bash user
+RUN echo 'user:password' | chpasswd
+RUN usermod -aG sudo user
+
+#COPY first-psql-user.sh /usr/sbin/
+#RUN chmod +x /usr/sbin/first-psql-user.sh
+#RUN /usr/sbin/first-psql-user.sh
+
+RUN su postgres -c '/usr/lib/postgresql/9.5/bin/postgres  --config-file=/etc/postgresql/9.5/main/postgresql.conf' &
+RUN sudo -u postgres psql -c"ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
+
 
 VOLUME /var/www/html
 VOLUME /var/log/httpd
-VOLUME /var/lib/mysql
-VOLUME /var/log/mysql
+VOLUME /var/lib/postgresql/
+VOLUME /var/run/postgresql/
+VOLUME /etc/postgresql/
+
+# VOLUME /var/lib/mysql
+# VOLUME /var/log/mysql
 
 EXPOSE 80
-EXPOSE 3306
+EXPOSE 22
+#EXPOSE 3306
+EXPOSE 5342
 
 CMD ["/usr/sbin/run-lamp.sh"]
