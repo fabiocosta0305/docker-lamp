@@ -71,6 +71,13 @@ RUN mkdir -p /var/run/postgresql/9.5-main.pg_stat_tmp/
 RUN chown -R postgres:postgres /var/run/postgresql/9.5-main.pg_stat_tmp/
 RUN mkdir -p /var/run/sshd/
 
+VOLUME /var/www/html
+VOLUME /var/log/httpd
+VOLUME /var/lib/postgresql/
+VOLUME /var/run/postgresql/
+VOLUME /etc/postgresql/
+VOLUME /run/postgresql/
+
 # Creating an user for some needed access
 
 RUN useradd -ms /bin/bash user
@@ -81,15 +88,11 @@ RUN usermod -aG sudo user
 #RUN chmod +x /usr/sbin/first-psql-user.sh
 #RUN /usr/sbin/first-psql-user.sh
 
-RUN su postgres -c '/usr/lib/postgresql/9.5/bin/postgres  --config-file=/etc/postgresql/9.5/main/postgresql.conf' &
-RUN sudo -u postgres psql -c"ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
+RUN su postgres -c '/usr/lib/postgresql/9.5/bin/pg_ctl start' &
+RUN sleep 10
+RUN sudo -u postgres psql -p 5432 -c"ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
 
 
-VOLUME /var/www/html
-VOLUME /var/log/httpd
-VOLUME /var/lib/postgresql/
-VOLUME /var/run/postgresql/
-VOLUME /etc/postgresql/
 
 # VOLUME /var/lib/mysql
 # VOLUME /var/log/mysql
