@@ -91,6 +91,10 @@ RUN echo 'host all all 0.0.0.0/0 md5' >> /etc/postgresql/9.6/main/pg_hba.conf
 
 RUN echo "ALTER user postgres WITH PASSWORD 'postgres'" | su postgres -c '/usr/lib/postgresql/9.6/bin/postgres --single  --config-file=/etc/postgresql/9.6/main/postgresql.conf' 
 
+RUN    /etc/init.d/postgresql start &&\
+    psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
+    createdb -O docker docker
+    
 # VOLUME /var/lib/mysql
 # VOLUME /var/log/mysql
 
