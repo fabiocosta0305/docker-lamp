@@ -97,12 +97,13 @@ RUN echo "ALTER user postgres WITH PASSWORD 'postgres'" | su postgres -c '/usr/l
 EXPOSE 80
 EXPOSE 22
 #EXPOSE 3306
-EXPOSE 5342
+EXPOSE 5432
 
 
 VOLUME /var/www/html
 VOLUME /var/log/httpd
 VOLUME /var/lib/postgresql/
+VOLUME /var/log/postgresql/
 VOLUME /var/run/postgresql/
 VOLUME /etc/postgresql/
 VOLUME /run/postgresql/
@@ -112,8 +113,17 @@ COPY run-lamp.sh /usr/sbin/
 COPY sshd_config /etc/ssh/
 RUN chmod +x /usr/sbin/run-lamp.sh
 
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf 
+
 #CMD ["/usr/sbin/run-lamp.sh"]
-CMD ["/usr/lib/postgresql/9.6/bin/postgres", "--config_file=/etc/postgresql/9.6/main/postgresql.conf"]
+CMD ["/usr/lib/postgresql/9.6/bin/postgres", "-D", "/var/lib/postgresql/9.6/main", "-c",  "--config_file=/etc/postgresql/9.6/main/postgresql.conf"]
 CMD ["/usr/sbin/sshd", "-D"]
 CMD ["/usr/sbin/nginx"]
 
+    
