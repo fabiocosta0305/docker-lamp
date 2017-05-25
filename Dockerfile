@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:17.04
 MAINTAINER Fer Uria <fauria@gmail.com>
 LABEL Description="Cutting-edge LAMP stack, based on Ubuntu 16.04 LTS. Includes .htaccess support and popular PHP7 features, including composer and mail() function." \
 	License="Apache License 2.0" \
@@ -50,7 +50,8 @@ RUN apt-get install postfix -y
 RUN apt-get install git nodejs npm composer nano tree vim curl ftp -y
 RUN apt-get install nginx -y
 RUN npm install -g bower grunt-cli gulp
-RUN apt-get install sudo
+RUN apt-get install sudo -y
+RUN apt-get install openssh-server -y
 
 ENV LOG_STDOUT **Boolean**
 ENV LOG_STDERR **Boolean**
@@ -59,24 +60,15 @@ ENV ALLOW_OVERRIDE All
 ENV DATE_TIMEZONE UTC
 ENV TERM dumb
 
-COPY index.php /var/www/html/
-COPY run-lamp.sh /usr/sbin/
 #COPY default /etc/nginx/sites-avaliable/
 
 RUN a2enmod rewrite
 RUN ln -s /usr/bin/nodejs /usr/bin/node
-RUN chmod +x /usr/sbin/run-lamp.sh
 RUN chown -R www-data:www-data /var/www/html
-RUN mkdir -p /var/run/postgresql/9.5-main.pg_stat_tmp/
-RUN chown -R postgres:postgres /var/run/postgresql/9.5-main.pg_stat_tmp/
+RUN mkdir -p /var/run/postgresql/9.6-main.pg_stat_tmp/
+RUN chown -R postgres:postgres /var/run/postgresql/
 RUN mkdir -p /var/run/sshd/
 
-VOLUME /var/www/html
-VOLUME /var/log/httpd
-VOLUME /var/lib/postgresql/
-VOLUME /var/run/postgresql/
-VOLUME /etc/postgresql/
-VOLUME /run/postgresql/
 
 # Creating an user for some needed access
 
@@ -88,11 +80,16 @@ RUN usermod -aG sudo user
 #RUN chmod +x /usr/sbin/first-psql-user.sh
 #RUN /usr/sbin/first-psql-user.sh
 
-RUN su postgres -c '/usr/lib/postgresql/9.5/bin/pg_ctl start' &
-RUN sleep 10
-RUN sudo -u postgres psql -p 5432 -c"ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
+#RUN su postgres -c '/usr/lib/postgresql/9.6/bin/pg_ctl start' &
+#RUN find /usr -iname '*postgres*'
+RUN sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/9.6/main/postgresql.conf
+RUN echo 'host all all 0.0.0.0/0 md5' >> /etc/postgresql/9.6/main/pg_hba.conf
 
+# RUN su postgres -c '/usr/lib/postgresql/9.6/bin/postgres --single  --config-file=/etc/postgresql/9.6/main/postgresql.conf' &
+# RUN sleep 10
+# RUN sudo -u postgres psql -p 5432 -c "ALTER user postgres WITH ENCRYPTED PASSWORD 'postgres'"
 
+RUN echo "ALTER user postgres WITH PASSWORD 'postgres'" | su postgres -c '/usr/lib/postgresql/9.6/bin/postgres --single  --config-file=/etc/postgresql/9.6/main/postgresql.conf' 
 
 # VOLUME /var/lib/mysql
 # VOLUME /var/log/mysql
@@ -102,4 +99,21 @@ EXPOSE 22
 #EXPOSE 3306
 EXPOSE 5342
 
-CMD ["/usr/sbin/run-lamp.sh"]
+
+VOLUME /var/www/html
+VOLUME /var/log/httpd
+VOLUME /var/lib/postgresql/
+VOLUME /var/run/postgresql/
+VOLUME /etc/postgresql/
+VOLUME /run/postgresql/
+
+COPY index.php /var/www/html/
+COPY run-lamp.sh /usr/sbin/
+COPY sshd_config /etc/ssh/
+RUN chmod +x /usr/sbin/run-lamp.sh
+
+#CMD ["/usr/sbin/run-lamp.sh"]
+CMD ["/usr/lib/postgresql/9.6/bin/postgres", "--config_file=/etc/postgresql/9.6/main/postgresql.conf"]
+CMD ["/usr/sbin/sshd", "-D"]
+CMD ["/usr/sbin/nginx"]
+
